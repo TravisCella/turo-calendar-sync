@@ -164,6 +164,21 @@ describe('reconcile change_requested deadline handling (58900705)', () => {
     expect(result.actions).toHaveLength(2);
   });
 
+  it('after the deadline, footer times matching neither request nor original flag it as unparsed', () => {
+    const pending = requestChange();
+    const notice = followUp('2026-09-16T00:00:00-06:00', '2026-09-18T00:00:00-06:00', '2026-09-16T00:00:00-06:00');
+
+    const result = reconcile(pending, notice, '2026-09-16T00:00:00-06:00');
+
+    expect(result.booking).toBe(pending);
+    expect(result.actions).toEqual([]);
+    expect(result.unparsed?.reason).toContain('58900705');
+    expect(result.unparsed?.reason).toContain(pending.requestedStart!);
+    expect(result.unparsed?.reason).toContain(pending.requestedEnd!);
+    expect(result.unparsed?.reason).toContain(confirmed.tripStart);
+    expect(result.unparsed?.reason).toContain(confirmed.tripEnd);
+  });
+
   it('expirePendingChanges leaves a pending booking untouched before its deadline', () => {
     const pending = requestChange();
     expect(expirePendingChanges([pending], '2026-09-15T10:00:00-06:00')).toEqual([]);

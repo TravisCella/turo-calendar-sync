@@ -130,11 +130,13 @@ function reconcileFooterNotice(existing: Booking | null, notice: ParsedNotice, n
     }
 
     // Neither matches the request nor the original booking: Turo's rule can't
-    // resolve this footer. This should go to the Unparsed log, but
-    // ReconcileResult has no field to carry that signal today — see the
-    // note back to Travis. We leave the booking untouched rather than guess.
-    const booking: Booking = { ...existing, lastNoticeAt: notice.sourceReceivedAt, updatedAt: now };
-    return { booking, actions: [] };
+    // resolve this footer. Leave the booking untouched and flag it for the
+    // Unparsed log rather than guess.
+    const reason =
+      `Reservation ${notice.reservationId}: footer times ${notice.tripStart} – ${notice.tripEnd} ` +
+      `match neither the requested times (${existing.requestedStart} – ${existing.requestedEnd}) ` +
+      `nor the confirmed times (${existing.tripStart} – ${existing.tripEnd}).`;
+    return { booking: existing, actions: [], unparsed: { reason } };
   }
 
   const timesChanged = notice.tripStart !== existing.tripStart || notice.tripEnd !== existing.tripEnd;

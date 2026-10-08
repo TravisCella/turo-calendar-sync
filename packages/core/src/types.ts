@@ -69,7 +69,7 @@ export interface CalendarEventSpec {
   start: string;              // ISO with offset
   end: string;                // start + 30 minutes
   location?: string;
-  description: string;        // guest name and phone, reservation link, trip window, mileage
+  description: string;        // guest name and phone, reservation link, trip window
   colorKey: string;           // vehicle, mapped to a color by the adapter
   tentative: boolean;
 }
@@ -82,4 +82,5 @@ export type CalendarAction =
 export interface ReconcileResult {
   booking: Booking | null;    // null when the notice was skipped
   actions: CalendarAction[];
+  unparsed?: { reason: string }; // set when the notice can't be resolved; goes to the Unparsed log
 }

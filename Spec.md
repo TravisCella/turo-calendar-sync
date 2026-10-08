@@ -190,7 +190,7 @@ Each booking produces two events, a pickup and a return, on the shared **Family*
 | Location | parsed location; if none, title starts with `NO LOCATION ·` | same |
 | Color | per vehicle | same as pickup |
 | Reminders | 2 hours and 30 minutes before | 30 minutes before |
-| Description | guest name and phone, reservation link, trip window, mileage | same, plus a note if another trip starts within 24 hours |
+| Description | guest name and phone, reservation link, trip window | same, plus a note if another trip starts within 24 hours |
 
 A pending change request prefixes the title with `CHANGE REQUESTED ·` and marks the event tentative. A missing location adds a line to the description: confirm the meeting point with the guest.
 
