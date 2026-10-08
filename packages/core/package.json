@@ -1,0 +1,6 @@
+{
+  "name": "@turo-sync/core",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts"
+}

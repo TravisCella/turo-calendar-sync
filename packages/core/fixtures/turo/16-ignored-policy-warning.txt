@@ -1,0 +1,12 @@
+From: noreply@mail.turo.com
+Subject: You didn’t comply with SLC’s delivery policy
+Received-At: 2026-08-06T16:55:40Z
+Message-Id: fixture-16
+
+You didn’t add a pickup location
+Your recent delivery to SLC (reservation #58801213) on 08-05-2026 was missing a pickup location. As a reminder, the SLC delivery policy requires that you add your vehicle’s location during check-in.
+Additional violations of this policy may result in permanent restriction from delivering to SLC.
+Next time, click the "Add location" button during check in to quickly record the vehicle’s pickup location.
+Turo Inc., 111 Sutter St, San Francisco, CA 94104
+
+Have a question? Visit the Turo Help Center for answers to common questions and concerns: https://turo.com/help

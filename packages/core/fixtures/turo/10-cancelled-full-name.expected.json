@@ -1,0 +1,11 @@
+{
+  "platform": "turo",
+  "kind": "cancelled",
+  "reservationId": "52462169",
+  "guestFirstName": "Megan",
+  "vehicle": "Cadillac Escalade ESV 2024",
+  "tripStart": "2026-01-04T19:00:00-07:00",
+  "tripEnd": "2026-01-08T07:00:00-07:00",
+  "sourceMessageId": "fixture-10",
+  "sourceReceivedAt": "2025-12-24T05:11:25Z"
+}

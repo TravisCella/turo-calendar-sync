@@ -1,0 +1,13 @@
+{
+  "platform": "turo",
+  "kind": "changed",
+  "reservationId": "60750758",
+  "guestFirstName": "Morgan",
+  "vehicle": "Audi Q8 2021",
+  "tripStart": "2026-10-13T20:00:00-06:00",
+  "tripEnd": "2026-10-16T11:00:00-06:00",
+  "guestPhone": "(555) 010-0004",
+  "earningsUsd": 134.14,
+  "sourceMessageId": "fixture-04",
+  "sourceReceivedAt": "2026-08-27T12:49:55Z"
+}

@@ -1,0 +1,14 @@
+{
+  "platform": "turo",
+  "kind": "booked",
+  "reservationId": "60521539",
+  "guestFirstName": "Grant",
+  "vehicle": "Cadillac Escalade ESV 2024",
+  "tripStart": "2027-01-21T14:30:00-07:00",
+  "tripEnd": "2027-01-24T10:00:00-07:00",
+  "location": "Salt Lake City International Airport",
+  "guestPhone": "(555) 010-0003",
+  "earningsUsd": 124.56,
+  "sourceMessageId": "fixture-03",
+  "sourceReceivedAt": "2026-08-19T21:42:14Z"
+}

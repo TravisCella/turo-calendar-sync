@@ -1,0 +1,13 @@
+{
+  "name": "turo-calendar-sync",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p packages/core"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "platform": "turo",
+  "kind": "change_requested",
+  "reservationId": "58900705",
+  "guestFirstName": "JORDAN",
+  "vehicle": "Cadillac Escalade ESV 2024",
+  "tripStart": "2026-09-15T23:30:00-06:00",
+  "tripEnd": "2026-09-20T23:30:00-06:00",
+  "requestedStart": "2026-09-15T23:30:00-06:00",
+  "requestedEnd": "2026-09-20T23:30:00-06:00",
+  "changeResponseBy": "2026-09-15T12:39:00-06:00",
+  "guestPhone": "(555) 010-0008",
+  "earningsUsd": 235.03,
+  "sourceMessageId": "fixture-08",
+  "sourceReceivedAt": "2026-09-15T06:39:26Z"
+}

@@ -1,0 +1,14 @@
+{
+  "platform": "turo",
+  "kind": "booked",
+  "reservationId": "61467780",
+  "guestFirstName": "Rob",
+  "vehicle": "Audi Q8 2021",
+  "tripStart": "2026-09-18T20:30:00-06:00",
+  "tripEnd": "2026-09-21T17:00:00-06:00",
+  "location": "Salt Lake City International Airport",
+  "guestPhone": "(555) 010-0001",
+  "earningsUsd": 245.84,
+  "sourceMessageId": "fixture-01",
+  "sourceReceivedAt": "2026-09-18T07:33:54Z"
+}

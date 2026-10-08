@@ -1,0 +1,13 @@
+{
+  "platform": "turo",
+  "kind": "changed",
+  "reservationId": "55589120",
+  "guestFirstName": "Taylor",
+  "vehicle": "Cadillac Escalade ESV 2024",
+  "tripStart": "2026-04-18T12:30:00-06:00",
+  "tripEnd": "2026-04-25T06:00:00-06:00",
+  "guestPhone": "(555) 010-0005",
+  "earningsUsd": 614.4,
+  "sourceMessageId": "fixture-05",
+  "sourceReceivedAt": "2026-04-15T03:22:36Z"
+}

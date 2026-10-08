@@ -1,0 +1,40 @@
+From: noreply@mail.turo.com
+Subject: Felix has changed their trip with your Cadillac Escalade ESV (54795647)
+Received-At: 2026-03-05T22:19:24Z
+Message-Id: fixture-06
+
+Felix has changed their trip
+
+Here’s what Felix changed:
+
+-
+    New trip start on Sun, May 17 2:00 PM
+
+-
+    New trip end on Sun, May 31 7:00 PM
+
+    Your new total earnings will be $1,119.48.
+
+        [guest note redacted]
+
+            Reply https://turo.com/us/en/reservation/54795647/messages
+
+    Cadillac Escalade ESV 2024
+
+            booked by Felix
+
+            Trip start: 5/17/26 2:00 PM
+        Trip end: 5/31/26 7:00 PM
+
+            You earn: $1,119.48
+        Mileage included: 2,300 miles
+            Felix
+                    +39 000 000 0000
+
+            Reservation ID #54795647
+
+    View Felix’s profile: https://turo.com/us/en/drivers/10000006
+
+    Send Felix a message: https://turo.com/reservation/54795647
+
+Have a question? Visit the Turo Help Center for answers to common questions and concerns: https://turo.com/help
