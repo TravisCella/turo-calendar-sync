@@ -58,13 +58,13 @@ Audi Q8 2021
 | --- | --- | --- |
 | Booked | `<Guest>'s trip with your <Vehicle> is booked!` | Create booking and both events |
 | Changed | `<Guest> has changed their trip with your <Vehicle> (<ResID>)` | Update times from footer |
-| Change requested | `<Guest> has requested a change to their trip...` | Flag events as pending change; do not move them |
+| Change requested | `<Guest> has requested a change to their trip...` | Flag events as pending; keep confirmed times |
 | Cancelled | `<Guest> has cancelled their trip with your <Vehicle>` | Mark cancelled, remove events |
 | Upcoming trip | `<Guest> has an upcoming trip with your <Vehicle>` | Reconcile: create if missing |
 | Guest message | `<Guest> has sent you a message about your <Vehicle>` | Reconcile footer times only |
 | Rated, earnings, marketing, support | various | Ignore |
 
-The change-requested footer still shows the old times. The new times appear only in the body, so a pending request must never move an event.
+The calendar shows only confirmed times. A change-request email's footer already shows the requested, unconfirmed times, so the sync takes no times from a change-request email and never moves an event because of one.
 
 ## Portable architecture
 
@@ -107,6 +107,7 @@ export interface ParsedNotice {
   earningsUsd?: number;
   requestedStart?: string;    // change_requested only, from body
   requestedEnd?: string;
+  changeResponseBy?: string;  // change_requested only: Turo's response deadline
   sourceMessageId: string;
   sourceReceivedAt: string;
 }
@@ -123,6 +124,9 @@ export interface Booking {
   tripStart: string;
   tripEnd: string;
   status: BookingStatus;
+  requestedStart?: string;    // set while change_pending
+  requestedEnd?: string;
+  changeResponseBy?: string;
   earningsUsd?: number;
   pickupEventId?: string;
   returnEventId?: string;
@@ -153,9 +157,9 @@ Each run does the same four steps: fetch unprocessed Turo emails, parse each int
 1. Skip if `notice.sourceReceivedAt` is older than `existing.lastNoticeAt`.
 2. `booked`: create the booking; actions = create pickup and return events.
 3. `changed`: overwrite tripStart and tripEnd from the footer; clear any pending flag; actions = update both events.
-4. `change_requested`: set status `change_pending` and store requested times; actions = mark both events tentative and add the requested times to the description. Times stay put.
+4. `change_requested`: set status `change_pending` and store requested times; actions = mark both events tentative and add the requested times to the description. Times stay at the last confirmed values; the footer times in this email are ignored. Also store the response deadline from the line "You have until \<date> to respond to this change request."
 5. `cancelled`: set status `cancelled`; actions = delete both events.
-6. `upcoming` or `message`: if no booking exists, create it as in rule 2. If the footer times differ from stored times, apply them as in rule 3. This self-heals a missed or unparsed email.
+6. `upcoming` or `message`: if no booking exists, create it as in rule 2. If the footer times differ from stored times, apply them as in rule 3. Exception: while a booking is change\_pending and the response deadline has not passed, footer times are not applied, because they may be the unconfirmed requested times. After the deadline: footer times equal to the requested times mean accepted (apply them, clear the flag); footer times equal to the confirmed times mean declined (clear the flag, keep the times); anything else goes to the Unparsed log. Turo declines any request the host has not answered by the deadline, so every run also checks pending bookings: once the deadline passes with no footer showing the requested times, the booking reverts to its original times and the flag clears. A footer showing the requested times that arrives later still applies them. This self-heals a missed or unparsed email.
 7. Unknown subject from mail.turo.com containing a Reservation ID: log it to an Unparsed tab and send one daily digest email. Never guess.
 
 **Idempotency**
@@ -288,7 +292,7 @@ All five design decisions were settled on Oct 8, 2026; the unknowns get answered
 
 **Unknowns to resolve from more emails**
 
-- [ ] Does Turo send an email when a host accepts a change request? If not, the sync relies on the next upcoming or message email to correct the times.
+- [ ] Does Turo send an email when a host accepts a change request? Checked: none arrived for the one request in the inbox (Sep 2026). Still open: how the sync learns a request was accepted, since footers may show requested times while it is pending. Decided Oct 8, 2026: after Turo's response deadline, the next email footer settles it (rule 6). If no email confirms the change by then, it counts as declined, matching Turo's rule that unanswered requests lapse and the original booking stands.
 - [ ] Wording of host-initiated cancellations and declined change requests.
 - [ ] Wording of trip extensions requested mid-trip.
 - [ ] Whether a delivery address appears anywhere for non-airport deliveries.
