@@ -317,8 +317,3 @@ export function preflight(): void {
 
   lines.forEach((line) => console.log(line));
 }
-
-(globalThis as any).runSync = runSync;
-(globalThis as any).runBackfill = runBackfill;
-(globalThis as any).installTrigger = installTrigger;
-(globalThis as any).preflight = preflight;
