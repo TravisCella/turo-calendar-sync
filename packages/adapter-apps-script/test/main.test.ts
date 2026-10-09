@@ -181,7 +181,7 @@ describe('runWithDeps', () => {
   it('a booked email creates the booking and both calendar events', () => {
     const { deps, store, calendar, mailSource } = makeDeps(false, '2026-09-18T07:33:54Z');
 
-    runWithDeps(deps, [bookedEmail()], false);
+    runWithDeps(deps, [bookedEmail()], false, 0);
 
     expect(store.get('turo', '61467780')?.status).toBe('booked');
     expect(calendar.created).toHaveLength(2);
@@ -191,7 +191,7 @@ describe('runWithDeps', () => {
   it('dry run logs every calendar action and the gmail label, and performs neither', () => {
     const { deps, store, calendar, mailSource } = makeDeps(true, '2026-09-18T07:33:54Z');
 
-    runWithDeps(deps, [bookedEmail()], false);
+    runWithDeps(deps, [bookedEmail()], false, 0);
 
     expect(calendar.created).toHaveLength(0);
     expect(mailSource.marked).toHaveLength(0);
@@ -203,7 +203,7 @@ describe('runWithDeps', () => {
   it('skips calendar actions (but still updates the ledger) for a trip that already ended, during backfill', () => {
     const { deps, store, calendar } = makeDeps(false, '2027-01-01T00:00:00Z'); // long after the trip
 
-    runWithDeps(deps, [bookedEmail()], true);
+    runWithDeps(deps, [bookedEmail()], true, 0);
 
     expect(calendar.created).toHaveLength(0);
     expect(store.get('turo', '61467780')).not.toBeNull();
@@ -226,7 +226,7 @@ describe('runWithDeps', () => {
       }),
     );
 
-    runWithDeps(deps, [bookedEmail()], false);
+    runWithDeps(deps, [bookedEmail()], false, 0);
 
     const returnEvent = calendar.created.find((e) => e.role === 'return');
     expect(returnEvent?.description).toContain('Another trip starts at 2026-09-22 03:00');
@@ -235,7 +235,7 @@ describe('runWithDeps', () => {
   it('create() persists the returned event ids onto the booking', () => {
     const { deps, store } = makeDeps(false, '2026-09-18T07:33:54Z');
 
-    runWithDeps(deps, [bookedEmail()], false);
+    runWithDeps(deps, [bookedEmail()], false, 0);
 
     const booking = store.get('turo', '61467780');
     expect(booking?.pickupEventId).toBe('id-1');
@@ -244,7 +244,7 @@ describe('runWithDeps', () => {
 
   it('update() passes the stored event id, and persists a new one if update() had to recreate it', () => {
     const { deps, store, calendar } = makeDeps(false, '2026-09-18T07:33:54Z');
-    runWithDeps(deps, [bookedEmail()], false); // creates it, ids id-1 (pickup) / id-2 (return)
+    runWithDeps(deps, [bookedEmail()], false, 0); // creates it, ids id-1 (pickup) / id-2 (return)
     calendar.markGone('id-1'); // simulate someone deleting the pickup event by hand
 
     const changeEmail: RawEmail = {
@@ -272,7 +272,7 @@ Here’s what Rob changed:
 `,
     };
 
-    runWithDeps(deps, [changeEmail], false);
+    runWithDeps(deps, [changeEmail], false, 0);
 
     const pickupCall = calendar.updated.find((u) => u.event.role === 'pickup');
     expect(pickupCall?.knownEventId).toBe('id-1'); // tried the stored id first
@@ -283,7 +283,7 @@ Here’s what Rob changed:
 
   it('a live run after a dry run still creates both events for a booking with no event ids', () => {
     const { deps: dryDeps, store, calendar } = makeDeps(true, '2026-09-18T07:33:54Z');
-    runWithDeps(dryDeps, [bookedEmail()], false);
+    runWithDeps(dryDeps, [bookedEmail()], false, 0);
 
     expect(calendar.created).toHaveLength(0); // nothing really created in dry run
     expect(store.get('turo', '61467780')).not.toBeNull(); // but the ledger knows about it
@@ -291,7 +291,7 @@ Here’s what Rob changed:
     // Flip to live, reusing the same store/calendar — and feed no new emails,
     // to prove this doesn't depend on the booked email being reprocessed.
     const liveDeps: RunDeps = { ...dryDeps, dryRun: false };
-    runWithDeps(liveDeps, [], false);
+    runWithDeps(liveDeps, [], false, 0);
 
     expect(calendar.created.map((e) => e.role).sort()).toEqual(['pickup', 'return']);
     const booking = store.get('turo', '61467780');
@@ -300,14 +300,14 @@ Here’s what Rob changed:
   });
 
   it('stops processing before the time limit and leaves the rest for the next run', () => {
-    const timestamps = [0, 0, 10 * 60 * 1000]; // startedAt=0, first check=0 (ok), second check=10min (over limit)
+    const timestamps = [0, 10 * 60 * 1000]; // first check=0 (ok), second check=10min (over limit)
     let call = 0;
     const { deps, store, mailSource } = makeDeps(false, '2026-09-18T07:33:54Z', () => timestamps[Math.min(call++, timestamps.length - 1)]);
 
     const email1 = bookedEmail({ reservationId: '11111111', messageId: 'e1' });
     const email2 = bookedEmail({ reservationId: '22222222', messageId: 'e2' });
 
-    runWithDeps(deps, [email1, email2], false);
+    runWithDeps(deps, [email1, email2], false, 0);
 
     expect(mailSource.marked).toEqual(['e1']); // only the first got processed
     expect(store.get('turo', '11111111')).not.toBeNull();
@@ -344,7 +344,7 @@ Here’s what Rob changed:
       tripEndFooter: '9/18/26 12:00 am',
     });
 
-    runWithDeps(deps, [email], false);
+    runWithDeps(deps, [email], false, 0);
 
     expect(store.unparsed).toHaveLength(1);
     expect(store.unparsed[0]).toMatchObject({ messageId: 'synthetic-ambiguous', subject: email.subject });
@@ -372,7 +372,7 @@ Here’s what Rob changed:
       }),
     );
 
-    runWithDeps(deps, [], false);
+    runWithDeps(deps, [], false, 0);
 
     const reverted = store.get('turo', '58900705');
     expect(reverted?.status).toBe('booked');

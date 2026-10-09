@@ -13,6 +13,15 @@ export function makeFakeProperties(initial: Record<string, string> = {}) {
   return properties;
 }
 
+export function makeFakeScriptApp(handlerFunctions: string[] = []) {
+  const triggers = handlerFunctions.map((handlerFunction) => ({
+    getHandlerFunction: () => handlerFunction,
+  }));
+  return {
+    getProjectTriggers: () => triggers,
+  };
+}
+
 export function makeFakeLock() {
   let locked = false;
   return {
@@ -163,12 +172,13 @@ function wrapCalendarEvent(event: FakeCalendarEvent) {
   return wrapped;
 }
 
-export function makeFakeCalendarApp(events: FakeCalendarEvent[] = []) {
+export function makeFakeCalendarApp(events: FakeCalendarEvent[] = [], name = 'Turo Sync Test') {
   let nextId = events.length + 1;
 
   const calendar = {
     getEventsCalls: 0,
     getEventByIdCalls: 0,
+    getName: () => name,
     createEvent: (title: string, start: Date, end: Date, options: { location?: string; description?: string }) => {
       const event = makeFakeCalendarEvent({
         id: `event-${nextId++}`,

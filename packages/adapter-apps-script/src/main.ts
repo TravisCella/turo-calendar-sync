@@ -27,8 +27,9 @@ const DIGEST_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // Apps Script kills a trigger-run execution at 6 minutes; stop processing
 // emails with a comfortable margin so the run always finishes cleanly and
 // the next invocation (Gmail excludes what we already labeled) picks up
-// where this one left off.
-const MAX_RUN_MS = 5 * 60 * 1000;
+// where this one left off. Timed from function entry, not from after the
+// Gmail fetch, so a slow backfill search counts against the budget too.
+const MAX_RUN_MS = 4 * 60 * 1000;
 const ACTIVE_STATUSES: BookingStatus[] = ['booked', 'change_pending'];
 
 // Structural, not the concrete classes, so tests can pass plain-object fakes.
@@ -74,6 +75,16 @@ function knownEventId(booking: Booking, role: EventRole): string | undefined {
 
 function withEventId(booking: Booking, role: EventRole, id: string): Booking {
   return role === 'pickup' ? { ...booking, pickupEventId: id } : { ...booking, returnEventId: id };
+}
+
+// True for an active, not-yet-ended booking that doesn't have both its
+// calendar events yet (never created, or created but the id was lost).
+function needsEvents(booking: Booking, now: string): boolean {
+  return (
+    ACTIVE_STATUSES.includes(booking.status) &&
+    !(booking.pickupEventId && booking.returnEventId) &&
+    new Date(booking.tripEnd).getTime() >= new Date(now).getTime()
+  );
 }
 
 function applyResult(result: ReconcileResult, allBookings: Booking[], deps: RunDeps, skipCalendar: boolean): void {
@@ -124,9 +135,7 @@ function materializeMissingEvents(deps: RunDeps, now: string): void {
   const allBookings = deps.store.listAll();
 
   for (const booking of allBookings) {
-    if (!ACTIVE_STATUSES.includes(booking.status)) continue;
-    if (booking.pickupEventId && booking.returnEventId) continue;
-    if (new Date(booking.tripEnd).getTime() < new Date(now).getTime()) continue; // trip already over
+    if (!needsEvents(booking, now)) continue;
 
     const freshEvents = regenerateEvents(booking, allBookings);
     let updated = booking;
@@ -150,9 +159,8 @@ function markProcessed(email: RawEmail, deps: RunDeps): void {
   else deps.mailSource.markProcessed(email.messageId);
 }
 
-export function runWithDeps(deps: RunDeps, emails: RawEmail[], skipPastTrips: boolean): void {
+export function runWithDeps(deps: RunDeps, emails: RawEmail[], skipPastTrips: boolean, startedAtMs: number): void {
   const now = deps.clock.now();
-  const startedAtMs = deps.nowMs();
 
   for (let i = 0; i < emails.length; i++) {
     if (deps.nowMs() - startedAtMs > MAX_RUN_MS) {
@@ -246,19 +254,21 @@ function notifyAndDigest(deps: RunDeps): void {
 }
 
 export function runSync(): void {
+  const startedAtMs = Date.now(); // function entry, before the lock or the Gmail fetch
   withScriptLock(() => {
     const mailSource = new GmailMailSource();
     const deps = buildDeps(mailSource);
-    runWithDeps(deps, mailSource.fetchNew(), false);
+    runWithDeps(deps, mailSource.fetchNew(), false, startedAtMs);
     notifyAndDigest(deps);
   });
 }
 
 export function runBackfill(): void {
+  const startedAtMs = Date.now(); // function entry, before the lock or the Gmail fetch
   withScriptLock(() => {
     const mailSource = new GmailMailSource();
     const deps = buildDeps(mailSource);
-    runWithDeps(deps, mailSource.fetchBackfill(), true);
+    runWithDeps(deps, mailSource.fetchBackfill(), true, startedAtMs);
     notifyAndDigest(deps);
   });
 }
@@ -270,6 +280,45 @@ export function installTrigger(): void {
   ScriptApp.newTrigger('runSync').timeBased().everyMinutes(10).create();
 }
 
+// Read-only. Safe to run anytime from the Apps Script editor to sanity-check
+// configuration before a real run — never writes to the calendar, the
+// ledger, or Gmail.
+export function preflight(): void {
+  const config = readConfig();
+
+  const calendar = CalendarApp.getCalendarById(config.calendarId);
+  if (!calendar) {
+    throw new Error(`preflight: CALENDAR_ID "${config.calendarId}" does not resolve to a calendar.`);
+  }
+
+  const triggerCount = ScriptApp.getProjectTriggers().filter(
+    (trigger) => trigger.getHandlerFunction() === 'runSync',
+  ).length;
+
+  const lines = [
+    `Calendar: "${calendar.getName()}" (${config.calendarId})`,
+    `DRY_RUN: ${config.dryRun}`,
+    `runSync triggers installed: ${triggerCount}`,
+  ];
+
+  const spreadsheetId = getSpreadsheetId();
+  if (!spreadsheetId) {
+    lines.push('Ledger: not created yet (the spreadsheet is created on the first run)');
+  } else {
+    const store = new SheetBookingStore(SpreadsheetApp.openById(spreadsheetId));
+    const bookings = store.listAll();
+    const unparsedCount = store.listUnparsedSince(new Date(0).toISOString()).length;
+    const now = new RealClock().now();
+    const missingEventIds = bookings.filter((booking) => needsEvents(booking, now)).length;
+
+    lines.push(`Ledger: ${bookings.length} booking(s), ${unparsedCount} unparsed row(s)`);
+    lines.push(`Future active bookings missing event ids: ${missingEventIds}`);
+  }
+
+  lines.forEach((line) => console.log(line));
+}
+
 (globalThis as any).runSync = runSync;
 (globalThis as any).runBackfill = runBackfill;
 (globalThis as any).installTrigger = installTrigger;
+(globalThis as any).preflight = preflight;
