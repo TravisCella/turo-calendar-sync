@@ -43,7 +43,7 @@ function applyColorAndReminders(calEvent: GoogleAppsScript.Calendar.CalendarEven
 
   calEvent.removeAllReminders();
   calEvent.addPopupReminder(30);
-  if (event.role === 'pickup') calEvent.addPopupReminder(120);
+  calEvent.addPopupReminder(120);
 }
 
 export class CalendarAppCalendarSink implements CalendarSink {

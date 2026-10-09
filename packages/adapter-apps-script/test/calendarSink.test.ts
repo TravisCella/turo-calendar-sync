@@ -28,7 +28,7 @@ describe('CalendarAppCalendarSink', () => {
     expect(() => new CalendarAppCalendarSink('missing-calendar')).toThrow(/Calendar not found/);
   });
 
-  it('create() tags the event and sets pickup reminders (2h and 30m)', () => {
+  it('create() tags the event and sets reminders at 2h and 30m', () => {
     const events: FakeCalendarEvent[] = [];
     vi.stubGlobal('CalendarApp', makeFakeCalendarApp(events));
 
@@ -41,13 +41,13 @@ describe('CalendarAppCalendarSink', () => {
     expect(id).toBe(events[0].id);
   });
 
-  it('return events only get a 30-minute reminder', () => {
+  it('return events get the same 2h and 30m reminders as pickup events', () => {
     const events: FakeCalendarEvent[] = [];
     vi.stubGlobal('CalendarApp', makeFakeCalendarApp(events));
 
     new CalendarAppCalendarSink('cal-1').create(makeSpec({ key: 'turo:61467780:return', role: 'return' }));
 
-    expect(events[0].reminders).toEqual([30]);
+    expect(events[0].reminders.sort((a, b) => a - b)).toEqual([30, 120]);
   });
 
   it('update() finds the event by its tag and changes title/time/location/description', () => {
