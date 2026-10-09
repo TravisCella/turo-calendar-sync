@@ -89,6 +89,15 @@ export class CalendarAppCalendarSink implements CalendarSink {
     if (calEvent) calEvent.deleteEvent();
   }
 
+  // Deletes every event this sync ever tagged, regardless of key — an
+  // explicit full reset, not a per-booking operation. Returns how many it
+  // deleted so the caller can report it.
+  deleteAllTagged(): number {
+    const tagged = this.searchWindow().filter((event) => !!event.getTag(TAG_KEY));
+    tagged.forEach((event) => event.deleteEvent());
+    return tagged.length;
+  }
+
   private findEvent(key: string, knownEventId?: string): GoogleAppsScript.Calendar.CalendarEvent | null {
     if (knownEventId) {
       const byId = this.tryGetEventById(knownEventId);
@@ -109,9 +118,12 @@ export class CalendarAppCalendarSink implements CalendarSink {
   // Last resort: getEventById needs a known id; this is how we stay
   // rediscoverable even if the ledger (and its ids) is lost entirely.
   private findByKey(key: string): GoogleAppsScript.Calendar.CalendarEvent | null {
+    return this.searchWindow().find((event) => event.getTag(TAG_KEY) === key) ?? null;
+  }
+
+  private searchWindow(): GoogleAppsScript.Calendar.CalendarEvent[] {
     const now = new Date();
     const windowMs = SEARCH_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-    const events = this.calendar.getEvents(new Date(now.getTime() - windowMs), new Date(now.getTime() + windowMs));
-    return events.find((event) => event.getTag(TAG_KEY) === key) ?? null;
+    return this.calendar.getEvents(new Date(now.getTime() - windowMs), new Date(now.getTime() + windowMs));
   }
 }

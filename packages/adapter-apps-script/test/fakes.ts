@@ -79,9 +79,12 @@ export function makeFakeGmailApp(threads: FakeGmailThread[]) {
       messagesById.set(message.getId(), message);
     }
   }
+  const searchQueries: string[] = [];
 
   return {
+    searchQueries,
     search: (query: string) => {
+      searchQueries.push(query);
       const excludeLabel = /-label:(\S+)/.exec(query)?.[1];
       return threads.filter((thread) => !excludeLabel || !thread.hasLabel(excludeLabel));
     },

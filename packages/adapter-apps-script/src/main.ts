@@ -319,3 +319,31 @@ export function preflight(): void {
 
   lines.forEach((line) => console.log(line));
 }
+
+// Explicit cleanup: deletes every calendar event this sync ever tagged on
+// the current CALENDAR_ID, and clears pickupEventId/returnEventId on every
+// ledger booking so the next run recreates them. Ignores DRY_RUN — there's
+// no preview mode for a deliberate reset.
+export function resetCalendarEvents(): void {
+  withScriptLock(() => {
+    const config = readConfig();
+    const calendar = new CalendarAppCalendarSink(config.calendarId);
+    const deletedEvents = calendar.deleteAllTagged();
+
+    let clearedBookings = 0;
+    const spreadsheetId = getSpreadsheetId();
+    if (spreadsheetId) {
+      const store = new SheetBookingStore(SpreadsheetApp.openById(spreadsheetId));
+      for (const booking of store.listAll()) {
+        if (!booking.pickupEventId && !booking.returnEventId) continue;
+        const { pickupEventId, returnEventId, ...rest } = booking;
+        store.put(rest);
+        clearedBookings++;
+      }
+    }
+
+    console.log(
+      `resetCalendarEvents: deleted ${deletedEvents} calendar event(s); cleared event ids on ${clearedBookings} booking(s).`,
+    );
+  });
+}

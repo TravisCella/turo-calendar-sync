@@ -14,7 +14,7 @@ const MAIN_TS = join(ADAPTER_DIR, 'src', 'main.ts');
 // footer below provides. Only entry points main.ts actually exports get a
 // wrapper, so removing one here doesn't need a matching edit there.
 const GLOBAL_NAME = '__turoSync';
-const CANDIDATE_ENTRY_POINTS = ['runSync', 'runBackfill', 'installTrigger', 'preflight'];
+const CANDIDATE_ENTRY_POINTS = ['runSync', 'runBackfill', 'installTrigger', 'preflight', 'resetCalendarEvents'];
 
 const mainSource = readFileSync(MAIN_TS, 'utf-8');
 const entryPoints = CANDIDATE_ENTRY_POINTS.filter((name) =>

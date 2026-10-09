@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CalendarEventSpec } from '@turo-sync/core';
-import { makeFakeCalendarApp, type FakeCalendarEvent } from './fakes';
+import { makeFakeCalendarApp, makeFakeCalendarEvent, type FakeCalendarEvent } from './fakes';
 import { CalendarAppCalendarSink } from '../src/calendarSink';
 
 afterEach(() => {
@@ -167,5 +167,23 @@ describe('CalendarAppCalendarSink', () => {
     vi.stubGlobal('CalendarApp', makeFakeCalendarApp(events));
 
     expect(() => new CalendarAppCalendarSink('cal-1').delete('turo:nonexistent:pickup')).not.toThrow();
+  });
+
+  it('deleteAllTagged() removes every event this sync tagged, regardless of key, and leaves others alone', () => {
+    const events: FakeCalendarEvent[] = [];
+    vi.stubGlobal('CalendarApp', makeFakeCalendarApp(events));
+
+    const sink = new CalendarAppCalendarSink('cal-1');
+    sink.create(makeSpec({ key: 'turo:61467780:pickup' }));
+    sink.create(makeSpec({ key: 'turo:61467780:return', role: 'return' }));
+    sink.create(makeSpec({ key: 'turo:58900705:pickup' }));
+    const unrelated = makeFakeCalendarEvent({ id: 'someone-elses-event', title: 'Dentist' });
+    events.push(unrelated);
+
+    const deletedCount = sink.deleteAllTagged();
+
+    expect(deletedCount).toBe(3);
+    expect(events.filter((e) => e.tags['turoSyncKey']).every((e) => e.deleted)).toBe(true);
+    expect(unrelated.deleted).toBe(false);
   });
 });

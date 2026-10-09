@@ -40,9 +40,11 @@ function deleteActions(booking: Pick<Booking, 'platform' | 'reservationId'>): Ca
   ];
 }
 
-// Rule 2: booked.
-function reconcileBooked(notice: ParsedNotice, now: string): ReconcileResult {
+// Rule 2: booked. Keeps an existing location if this notice doesn't carry
+// one (e.g. a redelivered or reprocessed booked email).
+function reconcileBooked(existing: Booking | null, notice: ParsedNotice, now: string): ReconcileResult {
   const booking = baseFromNotice(notice, now, 'booked');
+  if (!booking.location && existing?.location) booking.location = existing.location;
   return { booking, actions: createActions(booking) };
 }
 
@@ -102,9 +104,12 @@ function reconcileFooterNotice(existing: Booking | null, notice: ParsedNotice, n
   if (existing.status === 'change_pending' && existing.changeResponseBy) {
     if (isBefore(now, existing.changeResponseBy)) {
       // Deadline hasn't passed: the footer may still show the unconfirmed
-      // requested times, so never apply it.
-      const booking: Booking = { ...existing, lastNoticeAt: notice.sourceReceivedAt, updatedAt: now };
-      return { booking, actions: [] };
+      // requested times, so never apply them. Location is independent of
+      // that and safe to fill in if we didn't have one yet — and worth an
+      // update action so the calendar event actually reflects it.
+      const location = notice.location ?? existing.location;
+      const booking: Booking = { ...existing, location, lastNoticeAt: notice.sourceReceivedAt, updatedAt: now };
+      return { booking, actions: location !== existing.location ? updateActions(booking) : [] };
     }
 
     const matchesRequested = notice.tripStart === existing.requestedStart && notice.tripEnd === existing.requestedEnd;
@@ -114,6 +119,7 @@ function reconcileFooterNotice(existing: Booking | null, notice: ParsedNotice, n
       const { requestedStart, requestedEnd, changeResponseBy, ...rest } = existing;
       const booking: Booking = {
         ...rest,
+        location: notice.location ?? existing.location,
         tripStart: notice.tripStart,
         tripEnd: notice.tripEnd,
         status: 'booked',
@@ -125,7 +131,13 @@ function reconcileFooterNotice(existing: Booking | null, notice: ParsedNotice, n
 
     if (matchesConfirmed) {
       const { requestedStart, requestedEnd, changeResponseBy, ...rest } = existing;
-      const booking: Booking = { ...rest, status: 'booked', lastNoticeAt: notice.sourceReceivedAt, updatedAt: now };
+      const booking: Booking = {
+        ...rest,
+        location: notice.location ?? existing.location,
+        status: 'booked',
+        lastNoticeAt: notice.sourceReceivedAt,
+        updatedAt: now,
+      };
       return { booking, actions: updateActions(booking) };
     }
 
@@ -140,11 +152,13 @@ function reconcileFooterNotice(existing: Booking | null, notice: ParsedNotice, n
   }
 
   const timesChanged = notice.tripStart !== existing.tripStart || notice.tripEnd !== existing.tripEnd;
+  const location = notice.location ?? existing.location;
+  const locationChanged = location !== existing.location;
   const booking: Booking = {
     ...existing,
     guestFirstName: notice.guestFirstName,
     guestPhone: notice.guestPhone ?? existing.guestPhone,
-    location: notice.location ?? existing.location,
+    location,
     vehicle: notice.vehicle,
     earningsUsd: notice.earningsUsd ?? existing.earningsUsd,
     tripStart: notice.tripStart,
@@ -152,7 +166,7 @@ function reconcileFooterNotice(existing: Booking | null, notice: ParsedNotice, n
     lastNoticeAt: notice.sourceReceivedAt,
     updatedAt: now,
   };
-  return { booking, actions: timesChanged ? updateActions(booking) : [] };
+  return { booking, actions: timesChanged || locationChanged ? updateActions(booking) : [] };
 }
 
 export function reconcile(existing: Booking | null, notice: ParsedNotice, now: string): ReconcileResult {
@@ -162,7 +176,7 @@ export function reconcile(existing: Booking | null, notice: ParsedNotice, now: s
 
   switch (notice.kind) {
     case 'booked':
-      return reconcileBooked(notice, now);
+      return reconcileBooked(existing, notice, now);
     case 'changed':
       return reconcileChanged(existing, notice, now);
     case 'change_requested':

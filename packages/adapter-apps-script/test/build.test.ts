@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const DIST_CODE_JS = join(__dirname, '..', 'dist', 'Code.js');
-const ENTRY_POINTS = ['runSync', 'runBackfill', 'installTrigger', 'preflight'];
+const ENTRY_POINTS = ['runSync', 'runBackfill', 'installTrigger', 'preflight', 'resetCalendarEvents'];
 
 describe('esbuild bundle', () => {
   it('declares every Apps Script entry point as a top-level function, not just a runtime property', async () => {

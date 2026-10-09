@@ -197,3 +197,98 @@ describe('reconcile change_requested deadline handling (58900705)', () => {
     expect(result.actions).toHaveLength(2);
   });
 });
+
+describe('location fill-in', () => {
+  function makeNotice(kind: ParsedNotice['kind'], overrides: Partial<ParsedNotice> = {}): ParsedNotice {
+    return {
+      platform: 'turo',
+      kind,
+      reservationId: '1',
+      guestFirstName: 'Rob',
+      vehicle: 'Audi Q8 2021',
+      tripStart: '2026-09-18T20:30:00-06:00',
+      tripEnd: '2026-09-21T17:00:00-06:00',
+      sourceMessageId: 'synthetic',
+      sourceReceivedAt: '2026-09-19T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  const existingNoLocation: Booking = {
+    platform: 'turo',
+    reservationId: '1',
+    vehicle: 'Audi Q8 2021',
+    guestFirstName: 'Rob',
+    tripStart: '2026-09-18T20:30:00-06:00',
+    tripEnd: '2026-09-21T17:00:00-06:00',
+    status: 'booked',
+    lastNoticeAt: '2026-09-18T07:33:54Z',
+    updatedAt: '2026-09-18T07:33:54Z',
+  };
+
+  const existingWithLocation: Booking = { ...existingNoLocation, location: 'Original Airport' };
+
+  it('booked fills in a missing location (e.g. a reprocessed email)', () => {
+    const notice = makeNotice('booked', { location: 'Salt Lake City International Airport' });
+    const result = reconcile(existingNoLocation, notice, notice.sourceReceivedAt);
+    expect(expectBooking(result).location).toBe('Salt Lake City International Airport');
+  });
+
+  it('booked never overwrites an existing location with an empty one', () => {
+    const notice = makeNotice('booked'); // no location
+    const result = reconcile(existingWithLocation, notice, notice.sourceReceivedAt);
+    expect(expectBooking(result).location).toBe('Original Airport');
+  });
+
+  it('changed fills in a missing location and never overwrites an existing one', () => {
+    const withLocation = makeNotice('changed', { location: 'Salt Lake City International Airport' });
+    expect(expectBooking(reconcile(existingNoLocation, withLocation, withLocation.sourceReceivedAt)).location).toBe(
+      'Salt Lake City International Airport',
+    );
+
+    const withoutLocation = makeNotice('changed');
+    expect(
+      expectBooking(reconcile(existingWithLocation, withoutLocation, withoutLocation.sourceReceivedAt)).location,
+    ).toBe('Original Airport');
+  });
+
+  it('upcoming/message fills in a missing location and emits an update even when times are unchanged', () => {
+    const notice = makeNotice('upcoming', { location: 'Salt Lake City International Airport' });
+    const result = reconcile(existingNoLocation, notice, notice.sourceReceivedAt);
+
+    expect(expectBooking(result).location).toBe('Salt Lake City International Airport');
+    expect(result.actions).toHaveLength(2); // the calendar event needs to show it, not just the ledger
+  });
+
+  it('upcoming/message never overwrites an existing location with an empty one, and is a no-op if nothing else changed', () => {
+    const notice = makeNotice('message'); // no location, same times
+    const result = reconcile(existingWithLocation, notice, notice.sourceReceivedAt);
+
+    expect(expectBooking(result).location).toBe('Original Airport');
+    expect(result.actions).toEqual([]);
+  });
+
+  it('fills in a missing location on a change_pending booking before its deadline, without touching times', () => {
+    const pending: Booking = {
+      ...existingNoLocation,
+      status: 'change_pending',
+      requestedStart: '2026-09-22T20:30:00-06:00',
+      requestedEnd: '2026-09-25T17:00:00-06:00',
+      changeResponseBy: '2026-09-20T00:00:00-06:00',
+    };
+    const notice = makeNotice('message', {
+      location: 'Salt Lake City International Airport',
+      tripStart: pending.requestedStart,
+      tripEnd: pending.requestedEnd,
+      sourceReceivedAt: '2026-09-19T12:00:00Z', // before the deadline
+    });
+
+    const result = reconcile(pending, notice, '2026-09-19T12:00:00Z');
+    const booking = expectBooking(result);
+
+    expect(booking.location).toBe('Salt Lake City International Airport');
+    expect(booking.status).toBe('change_pending');
+    expect(booking.tripStart).toBe(existingNoLocation.tripStart); // confirmed times untouched
+    expect(result.actions).toHaveLength(2); // the event's description/title needs the new location
+  });
+});

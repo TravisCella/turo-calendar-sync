@@ -7,7 +7,9 @@ const SYNC_DAYS = 30;
 const BACKFILL_DAYS = 365;
 
 function searchQuery(newerThanDays: number): string {
-  return `from:mail.turo.com -label:${PROCESSED_LABEL} newer_than:${newerThanDays}d`;
+  // in:anywhere includes Trash (Turo emails the host later tidies away are
+  // still unprocessed notices) while -in:spam keeps junk out.
+  return `from:mail.turo.com -label:${PROCESSED_LABEL} newer_than:${newerThanDays}d in:anywhere -in:spam`;
 }
 
 function getOrCreateProcessedLabel(): GoogleAppsScript.Gmail.GmailLabel {

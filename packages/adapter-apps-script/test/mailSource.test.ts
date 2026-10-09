@@ -28,6 +28,21 @@ describe('GmailMailSource', () => {
     expect(emails[0].textBody).toBe('a');
   });
 
+  it('fetchNew and fetchBackfill both search Trash, excluding spam', () => {
+    const fakeGmailApp = makeFakeGmailApp([]);
+    vi.stubGlobal('GmailApp', fakeGmailApp);
+
+    const source = new GmailMailSource();
+    source.fetchNew();
+    source.fetchBackfill();
+
+    for (const query of fakeGmailApp.searchQueries) {
+      expect(query).toContain('in:anywhere');
+      expect(query).toContain('-in:spam');
+    }
+    expect(fakeGmailApp.searchQueries).toHaveLength(2);
+  });
+
   it('markProcessed labels the message thread', () => {
     const thread = new FakeGmailThread([
       { id: 'm1', date: new Date(), from: 'noreply@mail.turo.com', subject: 'A', body: 'a' },
