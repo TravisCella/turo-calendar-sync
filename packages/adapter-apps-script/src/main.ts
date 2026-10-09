@@ -249,7 +249,9 @@ function notifyAndDigest(deps: RunDeps): void {
     deps.clock.now(),
     getLastDigestAt,
     saveLastDigestAt,
-    new MailNotifier(Session.getActiveUser().getEmail()),
+    // getActiveUser() can come back blank in a time-driven trigger context;
+    // getEffectiveUser() reliably returns the script owner there instead.
+    new MailNotifier(Session.getEffectiveUser().getEmail()),
   );
 }
 
