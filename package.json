@@ -4,9 +4,13 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p packages/core"
+    "typecheck": "tsc --noEmit -p packages/core && tsc --noEmit -p packages/adapter-apps-script",
+    "build": "node esbuild.config.mjs",
+    "deploy": "npm run build && clasp push"
   },
   "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "esbuild": "^0.24.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

@@ -64,6 +64,21 @@ describe('toCalendarEvents', () => {
     expect(pickup.description).toContain('Requested: 2026-09-22 20:30 – 2026-09-25 17:00');
   });
 
+  it('notes a tight turnaround on the return event only, when the next trip starts within 24 hours', () => {
+    const booking = makeBooking(); // tripEnd 2026-09-21T17:00:00-06:00
+    const [pickup, returnEvent] = toCalendarEvents(booking, { nextTripStart: '2026-09-22T09:00:00-06:00' }); // 16h later
+
+    expect(returnEvent.description).toContain('Another trip starts at 2026-09-22 09:00');
+    expect(pickup.description).not.toContain('Another trip starts');
+  });
+
+  it('does not note a turnaround when the next trip is more than 24 hours out', () => {
+    const booking = makeBooking(); // tripEnd 2026-09-21T17:00:00-06:00
+    const [, returnEvent] = toCalendarEvents(booking, { nextTripStart: '2026-09-24T17:00:00-06:00' }); // 3 days later
+
+    expect(returnEvent.description).not.toContain('Another trip starts');
+  });
+
   it('never includes earnings in the description', () => {
     const [pickup] = toCalendarEvents(makeBooking({ earningsUsd: 245.84 }));
     expect(pickup.description).not.toMatch(/\$|earn/i);

@@ -1,0 +1,12 @@
+{
+  "name": "@turo-sync/adapter-apps-script",
+  "private": true,
+  "type": "module",
+  "main": "src/main.ts",
+  "dependencies": {
+    "@turo-sync/core": "*"
+  },
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.83"
+  }
+}

@@ -32,7 +32,16 @@ function addMinutesPreservingOffset(iso: string, minutesToAdd: number): string {
   return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}T${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}:${pad(shifted.getUTCSeconds())}${offset}`;
 }
 
-function buildEvent(booking: Booking, role: EventRole): CalendarEventSpec {
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+export interface ToCalendarEventsOptions {
+  // ISO start time of the next booking for the same vehicle, if any. When
+  // it begins within 24 hours of this booking's return, the return event's
+  // description gets a tight-turnaround note.
+  nextTripStart?: string;
+}
+
+function buildEvent(booking: Booking, role: EventRole, options: ToCalendarEventsOptions): CalendarEventSpec {
   const start = role === 'pickup' ? booking.tripStart : booking.tripEnd;
   const end = addMinutesPreservingOffset(start, EVENT_DURATION_MINUTES);
   const vehicle = vehicleWithoutYear(booking.vehicle);
@@ -42,6 +51,12 @@ function buildEvent(booking: Booking, role: EventRole): CalendarEventSpec {
   if (!booking.location) title = `NO LOCATION · ${title}`;
   if (pending) title = `CHANGE REQUESTED · ${title}`;
 
+  const nextTripGapMs =
+    role === 'return' && options.nextTripStart
+      ? new Date(options.nextTripStart).getTime() - new Date(booking.tripEnd).getTime()
+      : null;
+  const nextTripSoon = nextTripGapMs !== null && nextTripGapMs >= 0 && nextTripGapMs <= TWENTY_FOUR_HOURS_MS;
+
   const description = [
     booking.guestPhone ? `${booking.guestFirstName} · ${booking.guestPhone}` : booking.guestFirstName,
     `https://turo.com/reservation/${booking.reservationId}`,
@@ -50,6 +65,7 @@ function buildEvent(booking: Booking, role: EventRole): CalendarEventSpec {
     pending && booking.requestedStart && booking.requestedEnd
       ? `Requested: ${formatWallClock(booking.requestedStart)} – ${formatWallClock(booking.requestedEnd)}`
       : null,
+    nextTripSoon ? `Another trip starts at ${formatWallClock(options.nextTripStart!)} — tight turnaround.` : null,
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
@@ -67,6 +83,6 @@ function buildEvent(booking: Booking, role: EventRole): CalendarEventSpec {
   };
 }
 
-export function toCalendarEvents(booking: Booking): CalendarEventSpec[] {
-  return [buildEvent(booking, 'pickup'), buildEvent(booking, 'return')];
+export function toCalendarEvents(booking: Booking, options: ToCalendarEventsOptions = {}): CalendarEventSpec[] {
+  return [buildEvent(booking, 'pickup', options), buildEvent(booking, 'return', options)];
 }
